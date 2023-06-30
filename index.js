@@ -1,4 +1,7 @@
 (function () {
+  if (codio.type !== 'TEACHER') {
+    return
+  }
   const ASSESSMENT_TYPES = {
     TEST: 'test',
     MULTIPLE_CHOICE: 'multiple-choice',
@@ -102,7 +105,7 @@
     },
     guidance: (assessment) => {
       const {guidance} = assessment.source
-      const lexerData = marked.lexer(guidance)
+      const lexerData = marked.lexer(guidance || '')
       const allCodeBlocksHideClipboard = lexerData
         .filter(item => item.type === 'code')
         .every(item => item.lang.includes('-hide-clipboard'))
@@ -145,7 +148,7 @@
         '"Code to Become Blocks" in "Parsons Puzzle" should not be blank.' : undefined
     },
     showFeedbackParsons: (assessment) => {
-      if (!assessment.type === ASSESSMENT_TYPES.PARSONS_PUZZLE) {
+      if (assessment.type !== ASSESSMENT_TYPES.PARSONS_PUZZLE) {
         return
       }
       try {
@@ -228,6 +231,12 @@
     if (!window.codioIDE || !window.codioIDE.guides) {
       return
     }
+    if (!window.codioIDE.isAuthorAssignment()) {
+      clearInterval(intervalId)
+      intervalId = null
+      return
+    }
+
     try {
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
