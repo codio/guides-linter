@@ -14,6 +14,7 @@
     SENSE_NETWORK: 'sense-network',
     RANDOM: 'random'
   }
+  const MARKDOWN_PARSER_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
   const LINTER_BUTTON_ID = 'codioGuidesLinterButton'
   const MODAL_ID = 'codioGuidesLinterModal'
   let intervalId = null
@@ -100,8 +101,13 @@
         '"Show Expected Answer" should be set to “After 2”' : undefined
     },
     guidance: (assessment) => {
-      // todo parser??? Any code blocks (```) should have “-hide-clipboard”.
-      return !assessment.source.guidance ? 'Rationale field should not be blank' : undefined
+      const {guidance} = assessment.source
+      const lexerData = marked.lexer(guidance)
+      const allCodeBlocksHideClipboard = lexerData
+        .filter(item => item.type === 'code')
+        .every(item => item.lang.includes('-hide-clipboard'))
+      return !guidance || !allCodeBlocksHideClipboard ?
+        'Rationale field should not be blank. Any code blocks (```) should have “-hide-clipboard”.' : undefined
     },
     bloomsObjectiveLevel: (assessment) => {
       return !assessment.source.bloomsObjectiveLevel ? '"Bloom’s Level" field should not be blank' : undefined
@@ -154,6 +160,13 @@
       return assessment.type === ASSESSMENT_TYPES.FREE_TEXT_AUTO && !assessment.source.command ?
         '"Command" in "Free text autograde" should not be blank.' : undefined
     }
+  }
+  function loadJS(FILE_URL) {
+    let scriptEle = document.createElement("script");
+    scriptEle.setAttribute("src", FILE_URL);
+    scriptEle.setAttribute("type", "text/javascript");
+    scriptEle.setAttribute("async", "true");
+    document.body.appendChild(scriptEle);
   }
   const addStyle = (() => {
     const style = document.createElement('style')
@@ -216,20 +229,8 @@
       return
     }
     try {
-      const metadataP = window.codioIDE.guides.getMetadata()
-      const assessmentsP = window.codioIDE.guides.getAssessments()
-      const bookStructureP = window.codioIDE.guides.getBookStructure()
-      const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
-      const [
-        metadata,
-        assessments,
-        bookStructure,
-        fileTreeStructure
-      ] = await Promise.all([metadataP, assessmentsP, bookStructureP, fileTreeStructureP])
-      console.log('metadata', metadata)
-      console.log('assessments', assessments)
-      console.log('bookStructure', bookStructure)
-      console.log('fileTreeStructure', fileTreeStructure)
+      // check metadata, if no errors - create button
+      await window.codioIDE.guides.getMetadata()
       clearInterval(intervalId)
       intervalId = null
 
@@ -239,7 +240,12 @@
       button.id = LINTER_BUTTON_ID
       button.innerHTML = 'Check guides'
       button.type = 'button'
-      button.onclick = () => {
+      button.onclick = async () => {
+        // const metadataP = window.codioIDE.guides.getMetadata()
+        // const bookStructureP = window.codioIDE.guides.getBookStructure()
+        // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
+        const assessments = await window.codioIDE.guides.getAssessments()
+        console.log('assessments', assessments)
         createModal()
         openModal()
         const errors = checkAssessments(assessments)
@@ -283,4 +289,5 @@
   }
 
   intervalId = setInterval(initializeGuidesLinter, 1000)
+  loadJS(MARKDOWN_PARSER_URL)
 })()
