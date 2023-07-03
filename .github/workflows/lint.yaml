@@ -1,8 +1,5 @@
 name: Publish Guides Linter
-on:
-  push:
-    tags:
-      - '*'
+on: push
 
 jobs:
   build:
@@ -11,12 +8,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Get tag
-        id: tag
-        uses: devops-actions/action-get-tag@v1.0.1
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-      - name: Upload to s3
-        run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{steps.tag.outputs.tag}}"
+      - name: Install packages
+        run: |
+          npm install
+
+      - name: Lint
+        run: |
+          npm run lint
 
       - name: Slack
         uses: codio/codio-slack-action@master
