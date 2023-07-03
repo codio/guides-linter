@@ -9,7 +9,7 @@ uploadFile () {
     fName=$1
     file=./$fName
     bucket=codio-assets
-    resource="/${bucket}/guides-linter/${fName}"
+    resource="/${bucket}/guides-linter/${tag}/${fName}"
     contentType="text/javascript"
     dateValue=`date -R`
     stringToSign="PUT\n\n${contentType}\n${dateValue}\n${resource}"
@@ -19,7 +19,7 @@ uploadFile () {
       -H "Date: ${dateValue}" \
       -H "Content-Type: ${contentType}" \
       -H "Authorization: AWS ${s3Key}:${signature}" \
-      https://${bucket}.s3.amazonaws.com/guides-linter/${fName}
+      https://${bucket}.s3.amazonaws.com/guides-linter/${tag}/${fName}
 }
 
-uploadFile "${tag}/index.js"
+uploadFile "index.js"
