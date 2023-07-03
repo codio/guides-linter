@@ -1,0 +1,20 @@
+{
+  "name": "guides-linter",
+  "version": "1.0.0",
+  "description": "Codio guides linter",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint index.js"
+  },
+  "keywords": [
+    "codio",
+    "guides",
+    "assessments",
+    "linter"
+  ],
+  "author": "Codio",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "8.44.0"
+  }
+}

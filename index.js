@@ -90,7 +90,7 @@
         'Question should not be blank. Text should also be bold (**)' : undefined
     },
     maxAttemptsCount: (assessment) => {
-      return assessment.source.hasOwnProperty('maxAttemptsCount') ?
+      return Object.prototype.hasOwnProperty.call(assessment.source, 'maxAttemptsCount') ?
         '"Defined Number of Attempts" should be toggled off' : undefined
     },
     showExpectedAnswer: (assessment) => {
@@ -102,7 +102,7 @@
     },
     guidance: (assessment) => {
       const {guidance} = assessment.source
-      const lexerData = marked.lexer(guidance || '')
+      const lexerData = window.marked.lexer(guidance || '')
       const allCodeBlocksHideClipboard = lexerData
         .filter(item => item.type === 'code')
         .every(item => item.lang.includes('-hide-clipboard'))
@@ -162,11 +162,11 @@
     }
   }
   function loadJS(FILE_URL) {
-    let scriptEle = document.createElement("script");
-    scriptEle.setAttribute("src", FILE_URL);
-    scriptEle.setAttribute("type", "text/javascript");
-    scriptEle.setAttribute("async", "true");
-    document.body.appendChild(scriptEle);
+    let scriptEle = document.createElement('script')
+    scriptEle.setAttribute('src', FILE_URL)
+    scriptEle.setAttribute('type', 'text/javascript')
+    scriptEle.setAttribute('async', 'true')
+    document.body.appendChild(scriptEle)
   }
   const addStyle = (() => {
     const style = document.createElement('style')
