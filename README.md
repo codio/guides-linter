@@ -15,5 +15,5 @@ function loadJS(FILE_URL) {
   scriptEle.setAttribute("async", true);
   document.body.appendChild(scriptEle);
 }
-loadJS('https://static-assets.codio.com/guides-linter/index.js');
+loadJS('https://static-assets.codio.com/guides-linter/${tag}/index.js');
 ```
