@@ -1,7 +1,4 @@
 (function () {
-  if (codio.type !== 'TEACHER') {
-    return
-  }
   const ASSESSMENT_TYPES = {
     TEST: 'test',
     MULTIPLE_CHOICE: 'multiple-choice',
