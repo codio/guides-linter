@@ -12,7 +12,7 @@ jobs:
 
       - name: Get tag
         id: tag
-        uses: dawidd6/action-get-tag@v1
+        uses: devops-actions/action-get-tag@v1.0.1
 
       - name: upload to s3
         run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{steps.tag.outputs.tag}}"
