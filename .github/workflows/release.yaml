@@ -1,4 +1,4 @@
-name: Publish Guides Linter
+name: upload to s3
 on:
   push:
     tags:
