@@ -85,7 +85,7 @@
       return assessment.source.showName ? '"Show Name" should be toggled off' : undefined
     },
     question: (assessment) => {
-      const re = /\*\*.+\*\*/s
+      const re = /^(\*\*.+\*\*|### .+)/s
       return !re.test(assessment.source.instructions) ?
         'Question should not be blank. Text should also be bold (**)' : undefined
     },
@@ -114,13 +114,17 @@
     },
     learningObjectives: (assessment) => {
       const {learningObjectives} = assessment.source
-      return !learningObjectives || learningObjectives.findIndex('SWBAT') !== 0 ?
+      return !learningObjectives || learningObjectives.indexOf('SWBAT') !== 0 ?
         '"Learning Objectives" field should not be blank, and it should start with “SWBAT”.' : undefined
     },
-    contentTag: (assessment) => {
+    requiredTags: (assessment) => {
+      const requiredTags = ['Content', 'Category']
       const {metadata} = assessment.source
-      const contentTag = metadata || metadata.tags || metadata.tags.find(item => item.name === 'Content')
-      return !contentTag || !contentTag.value ? 'Metadata "Content" tag field should not be blank' : undefined
+      const validAssessmentRequiredTags = metadata && metadata.tags ?
+        requiredTags.filter(tagName => metadata.tags.find(item => item.name === tagName && item.value)) :
+        []
+      const isTagsValid = validAssessmentRequiredTags.length === requiredTags.length
+      return !isTagsValid ? 'Metadata "Content" and "Category" tag fields should not be blank' : undefined
     },
     // Multiple Choice Questions
     shuffleAnswersMultipleChoice: (assessment) => {
@@ -228,13 +232,13 @@
     if (!window.codioIDE || !window.codioIDE.guides) {
       return
     }
-    if (!window.codioIDE.isAuthorAssignment()) {
-      clearInterval(intervalId)
-      intervalId = null
-      return
-    }
 
     try {
+      if (!window.codioIDE.isAuthorAssignment()) {
+        clearInterval(intervalId)
+        intervalId = null
+        return
+      }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
       clearInterval(intervalId)
@@ -266,6 +270,11 @@
     }
   }
 
+  const checkAssessmentType = (assessment) => {
+    return assessment.type === ASSESSMENT_TYPES.FREE_TEXT ?
+      'Free Text is used, use Free Text Autograde instead' : undefined
+  }
+
   const checkAssessments = (assessments) => {
     addModalContent('<h3>Assessments</h3>')
     const list = document.createElement('ul')
@@ -278,12 +287,20 @@
       listItem.append(assessmentNameNode)
       const errors = []
       const errorsList = document.createElement('ul')
+      const addError = (ruleName, error) => {
+        errors.push({ruleName, error})
+        errorsList.innerHTML += `<li><span style="color: red;">&#x2716;</span> ${ruleName}: ${error}`
+      }
       listItem.append(errorsList)
+      const assessmentTypeError = checkAssessmentType(assessment)
+      if (assessmentTypeError) {
+        addError('assessmentType', assessmentTypeError)
+        return allErrors.concat(errors)
+      }
       for (const [ruleName, ruleFunc] of Object.entries(ASSESSMENT_RULES)) {
         const error = ruleFunc(assessment)
         if (error) {
-          errors.push({ruleName, error})
-          errorsList.innerHTML += `<li><span style="color: red;">&#x2716;</span> ${ruleName}: ${error}`
+          addError(ruleName, error)
         }
       }
       if (!errors.length) {
