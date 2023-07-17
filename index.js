@@ -90,7 +90,7 @@
         'Question should not be blank. Text should also be bold (**)' : undefined
     },
     maxAttemptsCount: (assessment) => {
-      return Object.prototype.hasOwnProperty.call(assessment.source, 'maxAttemptsCount') ?
+      return assessment.source.maxAttemptsCount ?
         '"Defined Number of Attempts" should be toggled off' : undefined
     },
     showExpectedAnswer: (assessment) => {
@@ -266,7 +266,7 @@
       }
       document.body.append(button)
     } catch (e) {
-      console.error(e.message)
+      console.log(e.message)
     }
   }
 
