@@ -298,7 +298,12 @@
         return allErrors.concat(errors)
       }
       for (const [ruleName, ruleFunc] of Object.entries(ASSESSMENT_RULES)) {
-        const error = ruleFunc(assessment)
+        let error
+        try {
+          error = ruleFunc(assessment)
+        } catch ({message}) {
+          error = message
+        }
         if (error) {
           addError(ruleName, error)
         }
