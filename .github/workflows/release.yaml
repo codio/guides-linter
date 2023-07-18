@@ -1,8 +1,7 @@
 name: upload to s3
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types: [created]
 
 jobs:
   build:
@@ -11,12 +10,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Get tag
-        id: tag
-        uses: devops-actions/action-get-tag@v1.0.2
-
       - name: Upload to s3
-        run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{steps.tag.outputs.tag}}"
+        run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{ github.event.release.tag_name }}"
 
       - name: Slack
         uses: codio/codio-slack-action@master
