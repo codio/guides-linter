@@ -1,4 +1,5 @@
 (function () {
+  const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const ASSESSMENT_TYPES = {
     TEST: 'test',
     MULTIPLE_CHOICE: 'multiple-choice',
@@ -252,6 +253,10 @@
       button.id = LINTER_BUTTON_ID
       button.innerHTML = 'Check guides'
       button.type = 'button'
+      const data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      if (data && data.button) {
+        applyButtonPosition(button, data.button.top, data.button.left)
+      }
       const onClick = async () => {
         // const metadataP = window.codioIDE.guides.getMetadata()
         // const bookStructureP = window.codioIDE.guides.getBookStructure()
@@ -278,6 +283,20 @@
       'Free Text is used, use Free Text Autograde instead' : undefined
   }
 
+  const applyButtonPosition = (button, top, left, store) => {
+    button.style.top = `${top}px`
+    button.style.left = `${left}px`
+    button.style.right = 'auto'
+    if (store) {
+      let data = {}
+      try {
+        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      } catch {}
+      const button = {top, left}
+      localStorage.setItem(CODIO_GUIDES_LINTER, JSON.stringify({...data, button}))
+    }
+  }
+
   const bindButtonEvents = (button, onClick) => {
     let x = 0
     let y = 0
@@ -299,9 +318,7 @@
       const dy = e.clientY - y
 
       // Set the position of element
-      button.style.top = `${button.offsetTop + dy}px`
-      button.style.left = `${button.offsetLeft + dx}px`
-      button.style.right = 'auto'
+      applyButtonPosition(button, button.offsetTop + dy, button.offsetLeft + dx, true)
 
       // Reassign the position of mouse
       x = e.clientX
