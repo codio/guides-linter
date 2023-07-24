@@ -253,7 +253,10 @@
       button.id = LINTER_BUTTON_ID
       button.innerHTML = 'Check guides'
       button.type = 'button'
-      const data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      let data = null
+      try {
+        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      } catch {}
       if (data && data.button) {
         applyButtonPosition(button, data.button.top, data.button.left)
       }
