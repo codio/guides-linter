@@ -1,4 +1,5 @@
 (function () {
+  const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const ASSESSMENT_TYPES = {
     TEST: 'test',
     MULTIPLE_CHOICE: 'multiple-choice',
@@ -24,6 +25,8 @@
   right: 5px;
   top: 200px;
   z-index: 1;
+  cursor: pointer;
+  width: 90px;
 }
   
 #${MODAL_ID} {
@@ -250,7 +253,14 @@
       button.id = LINTER_BUTTON_ID
       button.innerHTML = 'Check guides'
       button.type = 'button'
-      button.onclick = async () => {
+      let data = null
+      try {
+        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      } catch {}
+      if (data && data.button) {
+        applyButtonPosition(button, data.button.top, data.button.left)
+      }
+      const onClick = async () => {
         // const metadataP = window.codioIDE.guides.getMetadata()
         // const bookStructureP = window.codioIDE.guides.getBookStructure()
         // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
@@ -264,6 +274,7 @@
         const resultContent = `<h4 style="color: ${color}">${text}</h4>`
         addModalContent(resultContent)
       }
+      bindButtonEvents(button, onClick)
       document.body.append(button)
     } catch (e) {
       console.log(e.message)
@@ -273,6 +284,60 @@
   const checkAssessmentType = (assessment) => {
     return assessment.type === ASSESSMENT_TYPES.FREE_TEXT ?
       'Free Text is used, use Free Text Autograde instead' : undefined
+  }
+
+  const applyButtonPosition = (button, top, left, store) => {
+    button.style.top = `${top}px`
+    button.style.left = `${left}px`
+    button.style.right = 'auto'
+    if (store) {
+      let data = {}
+      try {
+        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+      } catch {}
+      const button = {top, left}
+      localStorage.setItem(CODIO_GUIDES_LINTER, JSON.stringify({...data, button}))
+    }
+  }
+
+  const bindButtonEvents = (button, onClick) => {
+    let x = 0
+    let y = 0
+    let drag = false
+    const mouseDownHandler = function (e) {
+      // Get the current mouse position
+      x = e.clientX
+      y = e.clientY
+
+      // Attach the listeners to `document`
+      document.addEventListener('mousemove', mouseMoveHandler)
+      document.addEventListener('mouseup', mouseUpHandler)
+    }
+
+    const mouseMoveHandler = function (e) {
+      drag = true
+      // How far the mouse has been moved
+      const dx = e.clientX - x
+      const dy = e.clientY - y
+
+      // Set the position of element
+      applyButtonPosition(button, button.offsetTop + dy, button.offsetLeft + dx, true)
+
+      // Reassign the position of mouse
+      x = e.clientX
+      y = e.clientY
+    }
+
+    const mouseUpHandler = function () {
+      if (!drag) {
+        onClick()
+      }
+      drag = false
+      // Remove the handlers of `mousemove` and `mouseup`
+      document.removeEventListener('mousemove', mouseMoveHandler)
+      document.removeEventListener('mouseup', mouseUpHandler)
+    }
+    button.addEventListener('mousedown', mouseDownHandler)
   }
 
   const checkAssessments = (assessments) => {
