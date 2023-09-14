@@ -1,3 +1,4 @@
+
 (function () {
   const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const ASSESSMENT_TYPES = {
@@ -20,6 +21,58 @@
   const MODAL_ID = 'codioGuidesLinterModal'
   let intervalId = null
   const styles = `
+#bd {
+  display: block;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0);
+  background-color: rgba(0,0,0,0.4);
+}
+
+
+#bd-body {
+  max-height: 90%;
+  top: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: #fefefe;
+  margin: 0 auto;
+  padding: 20px 40px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+#bd-title {
+  text-align: center;
+} 
+
+#bd-close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  position: absolute;
+  right: 200px;
+  top: 100px;
+}
+
+#bd-close:hover,
+#bd-close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#bd-content {
+  overflow: auto;
+  min-height: 300px;
+}
+
 #${LINTER_BUTTON_ID} {
   position: absolute;
   right: 5px;
@@ -79,6 +132,8 @@
   overflow: auto;
   min-height: 300px;
 }
+
+
   `
   const ASSESSMENT_RULES = {
     name: (assessment) => {
@@ -180,6 +235,36 @@
     document.head.append(style)
     return (styleString) => style.textContent = styleString
   })()
+
+  const createDialog2 = () => {
+    const dialog = document.createElement('div')
+    dialog.id = 'bd'
+    dialog.innerHTML = `
+    <div id='bd-body'>
+    <h1 style="padding: 30px 0; text-align: center;">Happy birthday, Chalece!!!</h1>
+    <img style="width: 700px" src="https://cdn.discordapp.com/attachments/1111124155480408235/1151901447898800158/matchaa_musical_birthday_card_85813740-5932-4128-82e6-f3783dd2458a.png" />
+    </div>
+    `
+    const closeBtn = document.createElement('span')
+    closeBtn.onclick = () =>  {
+      dialog.style.display = 'none'
+    }
+    closeBtn.id = `bd-close`
+    closeBtn.innerHTML = 'Close'
+
+    dialog.append(closeBtn)
+    const hideBtn = document.createElement('span')
+    hideBtn.onclick = () =>  {
+      dialog.style.display = 'none'
+      localStorage.setItem(BIRTHDAY_KEY2, '1')
+    }
+    hideBtn.id = `bd-close`
+    hideBtn.innerHTML = 'Hide Forever'
+    hideBtn.style.top = '200px'
+    dialog.append(hideBtn)
+    document.body.append(dialog)
+  }
+
   const createModal = () => {
     let modal = document.getElementById(MODAL_ID)
     if (modal) {
@@ -232,6 +317,7 @@
   }
 
   const initializeGuidesLinter = async () => {
+    
     if (!window.codioIDE || !window.codioIDE.guides) {
       return
     }
@@ -260,6 +346,8 @@
       if (data && data.button) {
         applyButtonPosition(button, data.button.top, data.button.left)
       }
+
+
       const onClick = async () => {
         // const metadataP = window.codioIDE.guides.getMetadata()
         // const bookStructureP = window.codioIDE.guides.getBookStructure()
@@ -271,14 +359,7 @@
 
         // Birthday template
         // need to add "window.codio = codio;" before "loadJS" in custom scripts
-        const BIRTHDAY_KEY = 'codio-guides-linter-birthday'
-        localStorage.getItem(BIRTHDAY_KEY)
-        if (window.codio.userId === 'd8e2f318-8d43-4d06-ad2f-28bb7acb2ce1' && localStorage.getItem(BIRTHDAY_KEY) !== '1') {
-          localStorage.setItem(BIRTHDAY_KEY, '1')
-          addModalContent('<h1 style="padding: 30px 0; text-align: center;">Happy birthday, Chalece!!!</h1>')
-          addModalContent('<img src="https://cdn.discordapp.com/attachments/1111124155480408235/1151901447898800158/matchaa_musical_birthday_card_85813740-5932-4128-82e6-f3783dd2458a.png" />')
-       }
-        // Birthday template end
+        const BIRTHDAY_KEY2 = 'codio-guides-linter-birthday'
 
         const errors = checkAssessments(assessments)
         const color = errors.length ? 'red' : 'green'
@@ -394,5 +475,24 @@
   }
 
   intervalId = setInterval(initializeGuidesLinter, 1000)
+
+  // Birthday template start
+    console.log('Birthday template start')
+   const BIRTHDAY_KEY2 = 'codio-birthday'
+  debugger
+  if (localStorage.getItem(BIRTHDAY_KEY2) !== '1') {    window.codio = codio
+    addStyle(styles)
+
+    const interval = setInterval(() => {
+      console.log('window.codio', window.codio)
+      if (window.codio && window.codio.userId === 'd8e2f318-8d43-4d06-ad2f-28bb7acb2ce1') {
+        createDialog2()
+        debugger
+        clearInterval(interval)
+      }
+    }, 1000)
+  }
+    // Birthday template end
+
   loadJS(MARKDOWN_PARSER_URL)
 })()
