@@ -271,7 +271,10 @@
 
         // Birthday template
         // need to add "window.codio = codio;" before "loadJS" in custom scripts
-        if (window.codio.userId === 'd8e2f318-8d43-4d06-ad2f-28bb7acb2ce1') {
+        const BIRTHDAY_KEY = 'codio-guides-linter-birthday'
+        localStorage.getItem(BIRTHDAY_KEY)
+        if (window.codio.userId === 'd8e2f318-8d43-4d06-ad2f-28bb7acb2ce1' || localStorage.getItem(BIRTHDAY_KEY) !== '1') {
+          localStorage.setItem(BIRTHDAY_KEY, '1')
           addModalContent('<h1 style="padding: 30px 0; text-align: center;">Happy birthday, Chalece!!!</h1>')
        }
         // Birthday template end
