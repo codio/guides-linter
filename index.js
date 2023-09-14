@@ -276,6 +276,7 @@
         if (window.codio.userId === 'd8e2f318-8d43-4d06-ad2f-28bb7acb2ce1' && localStorage.getItem(BIRTHDAY_KEY) !== '1') {
           localStorage.setItem(BIRTHDAY_KEY, '1')
           addModalContent('<h1 style="padding: 30px 0; text-align: center;">Happy birthday, Chalece!!!</h1>')
+          addModalContent('<img src="https://cdn.discordapp.com/attachments/1111124155480408235/1151901447898800158/matchaa_musical_birthday_card_85813740-5932-4128-82e6-f3783dd2458a.png" />')
        }
         // Birthday template end
 
