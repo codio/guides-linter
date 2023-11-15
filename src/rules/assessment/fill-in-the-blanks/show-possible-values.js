@@ -1,4 +1,4 @@
-import {RULE_LEVELS} from '../../const'
+import {ASSESSMENT_TYPES, RULE_LEVELS} from '../../const'
 
 export default {
   action: (assessment) => {

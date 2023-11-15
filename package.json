@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "Codio guides linter",
   "scripts": {
-    "lint": "eslint src/index.js",
+    "lint": "eslint \"src/**/*.js\"",
     "build": "parcel build src/index.js"
   },
   "keywords": [
@@ -15,7 +15,7 @@
   "author": "Codio",
   "license": "ISC",
   "devDependencies": {
-    "eslint": "8.44.0",
+    "eslint": "^8.53.0",
     "parcel": "^2.10.3"
   }
 }
