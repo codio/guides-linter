@@ -258,7 +258,10 @@
         data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
       } catch {}
       if (data && data.button) {
-        applyButtonPosition(button, data.button.top, data.button.left)
+        let {top, left} = data.button
+        top = Math.max(0, Math.min(top, window.innerHeight))
+        left = Math.max(0, Math.min(left, window.innerWidth - 90))
+        applyButtonPosition(button, top, left)
       }
       const onClick = async () => {
         // const metadataP = window.codioIDE.guides.getMetadata()
