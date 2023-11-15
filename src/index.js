@@ -1,3 +1,5 @@
+import rules from './rules/index.js'
+
 (function () {
   const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const ASSESSMENT_TYPES = {
@@ -237,11 +239,11 @@
     }
 
     try {
-      if (!window.codioIDE.isAuthorAssignment()) {
-        clearInterval(intervalId)
-        intervalId = null
-        return
-      }
+      // if (!window.codioIDE.isAuthorAssignment()) {
+      //   clearInterval(intervalId)
+      //   intervalId = null
+      //   return
+      // }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
       clearInterval(intervalId)
