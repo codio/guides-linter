@@ -9,7 +9,7 @@ import {getIconByLevel} from './ui/icons'
   const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const MARKDOWN_PARSER_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
   const LINTER_BUTTON_ID = 'codioGuidesLinterButton'
-  let intervalId = null
+  const CHECK_GUIDES_TIMEOUT = 1000
 
   const initializeGuidesLinter = async () => {
     if (!window.codioIDE || !window.codioIDE.guides) {
@@ -18,14 +18,10 @@ import {getIconByLevel} from './ui/icons'
 
     try {
       if (!window.codioIDE.isAuthorAssignment()) {
-        clearInterval(intervalId)
-        intervalId = null
         return
       }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
-      clearInterval(intervalId)
-      intervalId = null
 
       addStyle(getStyles(LINTER_BUTTON_ID, modal.MODAL_ID))
       // create button
@@ -60,6 +56,7 @@ import {getIconByLevel} from './ui/icons'
       document.body.append(button)
     } catch (e) {
       console.log(e.message)
+      setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
     }
   }
 
@@ -178,6 +175,6 @@ import {getIconByLevel} from './ui/icons'
     }, [])
   }
 
-  intervalId = setInterval(initializeGuidesLinter, 1000)
+  setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
   loadJS(MARKDOWN_PARSER_URL)
 })()
