@@ -17,11 +17,11 @@ import {getIconByLevel} from './ui/icons'
     }
 
     try {
-      // if (!window.codioIDE.isAuthorAssignment()) {
-      //   clearInterval(intervalId)
-      //   intervalId = null
-      //   return
-      // }
+      if (!window.codioIDE.isAuthorAssignment()) {
+        clearInterval(intervalId)
+        intervalId = null
+        return
+      }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
       clearInterval(intervalId)
