@@ -4,5 +4,5 @@ export default {
   action: (assessment) => {
     return !assessment.source.bloomsObjectiveLevel ? '"Bloom’s Level" field should not be blank' : undefined
   },
-  level: RULE_LEVELS.ISSUE
+  level: RULE_LEVELS.SUGGESTION
 }

@@ -1,8 +1,8 @@
-import {ASSESSMENT_TYPES, RULE_LEVELS} from '../../const'
+import {ASSESSMENT, RULE_LEVELS} from '../../const'
 
 export default {
   action: (assessment) => {
-    return assessment.type === ASSESSMENT_TYPES.FREE_TEXT_AUTO && !assessment.source.command ?
+    return assessment.type === ASSESSMENT.TYPES.FREE_TEXT_AUTO && !assessment.source.command ?
       '"Command" in "Free text autograde" should not be blank.' : undefined
   },
   level: RULE_LEVELS.ISSUE

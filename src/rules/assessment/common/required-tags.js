@@ -10,5 +10,5 @@ export default {
     const isTagsValid = validAssessmentRequiredTags.length === requiredTags.length
     return !isTagsValid ? 'Metadata "Content" and "Category" tag fields should not be blank' : undefined
   },
-  level: RULE_LEVELS.ISSUE
+  level: RULE_LEVELS.SUGGESTION
 }

@@ -4,7 +4,8 @@
   "description": "Codio guides linter",
   "scripts": {
     "lint": "eslint \"src/**/*.js\"",
-    "build": "parcel build src/index.js"
+    "build": "parcel build src/index.js",
+    "buildDev": "parcel build src/index.js --no-optimize"
   },
   "keywords": [
     "codio",

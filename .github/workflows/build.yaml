@@ -1,8 +1,8 @@
-name: Check code styling
+name: lint
 on: push
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,9 +17,9 @@ jobs:
         run: |
           npm install
 
-      - name: Lint
+      - name: Build
         run: |
-          npm run lint
+          npm run build
 
       - name: Slack
         uses: codio/codio-slack-action@master

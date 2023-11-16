@@ -10,5 +10,5 @@ export default {
     return !guidance || !allCodeBlocksHideClipboard ?
       'Rationale field should not be blank. Any code blocks (```) should have “-hide-clipboard”.' : undefined
   },
-  level: RULE_LEVELS.ISSUE
+  level: RULE_LEVELS.WARNING
 }

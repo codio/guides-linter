@@ -1,8 +1,8 @@
-import {ASSESSMENT_TYPES, RULE_LEVELS} from '../../const'
+import {ASSESSMENT, RULE_LEVELS} from '../../const'
 
 export default {
   action: (assessment) => {
-    if (assessment.type !== ASSESSMENT_TYPES.PARSONS_PUZZLE) {
+    if (assessment.type !== ASSESSMENT.TYPES.PARSONS_PUZZLE) {
       return
     }
     try {
