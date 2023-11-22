@@ -17,9 +17,9 @@ import {getIconByLevel} from './ui/icons'
     }
 
     try {
-      if (!window.codioIDE.isAuthorAssignment()) {
-        return
-      }
+      // if (!window.codioIDE.isAuthorAssignment()) {
+      //   return
+      // }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
 
@@ -40,14 +40,35 @@ import {getIconByLevel} from './ui/icons'
         applyButtonPosition(button, top, left)
       }
       const onClick = async () => {
-        // const metadataP = window.codioIDE.guides.getMetadata()
-        // const bookStructureP = window.codioIDE.guides.getBookStructure()
         // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
-        const assessments = await window.codioIDE.guides.getAssessments()
-        console.log('assessments', assessments)
+        const [metadata, bookStructure, assessments] = await Promise.all([
+          window.codioIDE.guides.getMetadata(),
+          window.codioIDE.guides.getBookStructure(),
+          window.codioIDE.guides.getAssessments()
+        ])
+        console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
         modal.createModal()
         modal.openModal()
-        const errors = checkAssessments(assessments)
+        // todo show loading pages info message
+        console.log('loading pages info')
+
+        const contentPromises = metadata.getSections()
+          .map(section => window.codioIDE.getFileContent(section.contentPath))
+        const allContent = await Promise.all(contentPromises)
+        const pagesInfoArr = metadata.getSections().map((section, index) => {
+          const content = allContent[index]
+          return {
+            section,
+            content,
+            assessmentIds: window.codioIDE.guides.findAssessmentsIds(content, section.contentType)
+          }
+        })
+        console.log('pagesInfoArr', pagesInfoArr)
+
+        const assessmentById = assessments.reduce(
+          (obj, assessment) => Object.assign(obj, {[assessment.taskId]: assessment}), {}
+        )
+        const errors = checkAssessments(pagesInfoArr, assessmentById)
         const status = getErrorsStatus(errors)
         const resultContent = `<h4 style="color: ${status.color}">${status.message}</h4>`
         modal.addModalContent(resultContent)
@@ -139,41 +160,52 @@ import {getIconByLevel} from './ui/icons'
       'Free Text is used, use Free Text Autograde instead' : undefined
   }
 
-  const checkAssessments = (assessments) => {
+  const checkAssessments = (pagesInfo, assessmentsById) => {
     modal.addModalContent('<h3>Assessments</h3>')
     const list = document.createElement('ul')
     modal.addModalContent(list)
-    return assessments.reduce((allErrors, assessment) => {
-      const listItem = document.createElement('li')
-      list.append(listItem)
-      const assessmentNameNode = document.createElement('h5')
-      assessmentNameNode.innerHTML = `${assessment.source.name}(${assessment.taskId})`
-      listItem.append(assessmentNameNode)
-      const errors = []
-      const errorsList = document.createElement('ul')
-      const showAllErrors = () => {
-        const renderedErrors = errors
-          .sort((a, b) => a.level > b.level ? -1 : a.level === b.level ? 0 : 1)
-          .map(({ruleName, message, level}) => `<li>${getIconByLevel(level)} ${ruleName}: ${message}</li>`)
-        errorsList.innerHTML += renderedErrors.join('')
+
+    return pagesInfo.reduce((allErrors, {section, assessmentIds}) => {
+      if (!assessmentIds.length) {
+        return allErrors
       }
-      listItem.append(errorsList)
-      const assessmentTypeError = checkAssessmentType(assessment)
-      if (assessmentTypeError) {
-        errors.push({ruleName: 'assessmentType', message: assessmentTypeError, level: RULE_LEVELS.ISSUE})
+      const pageLink = `<a href='javascript:void(0)' data-section-id="${section.id}">${section.title}</a>`
+      const allAssessmentsErrors = assessmentIds.reduce((allAErrors, aId) => {
+        const listItem = document.createElement('li')
+        list.append(listItem)
+        const assessment = assessmentsById[aId]
+        const assessmentNameNode = document.createElement('h5')
+        const assessmentLink = `<a href='javascript:void(0)' 
+data-task-id="${assessment.taskId}">${assessment.source.name}(${assessment.taskId})</a>`
+        assessmentNameNode.innerHTML = `${pageLink} - ${assessmentLink}`
+        listItem.append(assessmentNameNode)
+        const errors = []
+        const errorsList = document.createElement('ul')
+        listItem.append(errorsList)
+        const showAllErrors = () => {
+          const renderedErrors = errors
+            .sort((a, b) => a.level > b.level ? -1 : a.level === b.level ? 0 : 1)
+            .map(({ruleName, message, level}) => `<li>${getIconByLevel(level)} ${ruleName}: ${message}</li>`)
+          errorsList.innerHTML += renderedErrors.join('')
+        }
+        const assessmentTypeError = checkAssessmentType(assessment)
+        if (assessmentTypeError) {
+          errors.push({ruleName: 'assessmentType', message: assessmentTypeError, level: RULE_LEVELS.ISSUE})
+          showAllErrors()
+          return allAErrors.concat(errors)
+        }
+
+        const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
+        errors.push(...assessmentErrors)
         showAllErrors()
-        return allErrors.concat(errors)
-      }
 
-      const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
-      errors.push(...assessmentErrors)
-      showAllErrors()
-
-      if (!errors.length) {
-        const success = '<span style="color: green">&#x2714;</span> '
-        assessmentNameNode.innerHTML = `${success}${assessment.source.name}`
-      }
-      return allErrors.concat(errors)
+        if (!errors.length) {
+          const success = '<span style="color: green">&#x2714;</span> '
+          assessmentNameNode.innerHTML = `${success}${assessment.source.name}`
+        }
+        return allAErrors.concat(errors)
+      }, [])
+      return allErrors.concat(allAssessmentsErrors)
     }, [])
   }
 
