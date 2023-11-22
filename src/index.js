@@ -151,21 +151,23 @@ import {getIconByLevel} from './ui/icons'
       listItem.append(assessmentNameNode)
       const errors = []
       const errorsList = document.createElement('ul')
-      const addError = (ruleName, message, level) => {
-        errors.push({ruleName, message, level})
-        errorsList.innerHTML += `<li>${getIconByLevel(level)} ${ruleName}: ${message}`
+      const showAllErrors = () => {
+        const renderedErrors = errors
+          .sort((a, b) => a.level > b.level ? -1 : a.level === b.level ? 0 : 1)
+          .map(({ruleName, message, level}) => `<li>${getIconByLevel(level)} ${ruleName}: ${message}</li>`)
+        errorsList.innerHTML += renderedErrors.join('')
       }
       listItem.append(errorsList)
       const assessmentTypeError = checkAssessmentType(assessment)
       if (assessmentTypeError) {
-        addError('assessmentType', assessmentTypeError, RULE_LEVELS.ISSUE)
+        errors.push({ruleName: 'assessmentType', message: assessmentTypeError, level: RULE_LEVELS.ISSUE})
+        showAllErrors()
         return allErrors.concat(errors)
       }
 
       const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
-      assessmentErrors.map(({ruleName, message, level}) => {
-        addError(ruleName, message, level)
-      })
+      errors.push(...assessmentErrors)
+      showAllErrors()
 
       if (!errors.length) {
         const success = '<span style="color: green">&#x2714;</span> '
