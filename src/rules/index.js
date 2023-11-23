@@ -1,4 +1,5 @@
 import assessment from './assessment/index'
+import page from './page/index'
 
 const BEFORE_ALL = 'beforeAll'
 export const checkRules = (ruleName, ruleData, parent, data, errorLevel) => {
@@ -27,5 +28,6 @@ export const checkRules = (ruleName, ruleData, parent, data, errorLevel) => {
 }
 
 export default {
-  assessment
+  assessment,
+  page
 }

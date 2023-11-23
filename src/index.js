@@ -64,14 +64,18 @@ import {getAssessmentById, setAssessmentById} from './state'
             assessmentIds: window.codioIDE.guides.findAssessmentsIds(content, section.contentType)
           }
         })
-        console.log('pagesInfoArr', pagesInfoArr)
 
         const assessmentById = assessments.reduce(
           (obj, assessment) => Object.assign(obj, {[assessment.taskId]: assessment}), {}
         )
         setAssessmentById(assessmentById)
-        const errors = checkAssessments(pagesInfoArr, assessmentById)
-        const status = getErrorsStatus(errors)
+
+        const assessmentErrors = checkAssessments(pagesInfoArr, assessmentById)
+        let status = getErrorsStatus(assessmentErrors)
+        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+        const pagesErrors = checkPages(pagesInfoArr, assessmentById)
+        status = getErrorsStatus(pagesErrors)
         Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
       }
       const onPositionUpdate = (button) => {
@@ -130,21 +134,46 @@ data-section-id="${section.id}" data-task-id="${assessment.taskId}"
 >${assessment.source.name}(${assessment.taskId})</a>`
         assessmentNameNode.innerHTML = `${pageLink} - ${assessmentLink}`
         listItem.append(assessmentNameNode)
-        const errors = []
         const errorsList = document.createElement('ul')
         listItem.append(errorsList)
 
         const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
-        errors.push(...assessmentErrors)
-        uiHelpers.showAllErrors(errorsList, errors)
+        uiHelpers.showAllErrors(errorsList, assessmentErrors)
 
-        if (!errors.length) {
+        if (!assessmentErrors.length) {
           const success = '<span style="color: green">&#x2714;</span> '
           assessmentNameNode.innerHTML = `${success} ${assessmentNameNode.innerHTML}`
         }
-        return allAErrors.concat(errors)
+        return allAErrors.concat(assessmentErrors)
       }, [])
       return allErrors.concat(allAssessmentsErrors)
+    }, [])
+  }
+
+  const checkPages = (pagesInfo, assessmentsById) => {
+    Modal.addModalContent('<h3>Pages</h3>')
+    const list = document.createElement('ul')
+    Modal.addModalContent(list)
+
+    return pagesInfo.reduce((allErrors, {section, assessmentIds, content}) => {
+      const listItem = document.createElement('li')
+      list.append(listItem)
+      const pageNameNode = document.createElement('h5')
+      pageNameNode.innerHTML = `<a href='javascript:void(0)' data-action="${ACTIONS.GO_TO_SECTION}" 
+data-section-id="${section.id}">${section.title}</a>`
+      listItem.append(pageNameNode)
+      const errorsList = document.createElement('ul')
+      listItem.append(errorsList)
+
+      const data = {section, content, assessmentIds, assessmentsById}
+      const pageErrors = checkRules('pages', rules.page, null, data, RULE_LEVELS.SUGGESTION)
+      uiHelpers.showAllErrors(errorsList, pageErrors)
+
+      if (!pageErrors.length) {
+        const success = '<span style="color: green">&#x2714;</span> '
+        pageNameNode.innerHTML = `${success} ${pageNameNode.innerHTML}`
+      }
+      return allErrors.concat(pageErrors)
     }, [])
   }
 
