@@ -201,7 +201,7 @@ data-task-id="${assessment.taskId}">${assessment.source.name}(${assessment.taskI
 
         if (!errors.length) {
           const success = '<span style="color: green">&#x2714;</span> '
-          assessmentNameNode.innerHTML = `${success}${assessment.source.name}`
+          assessmentNameNode.innerHTML = `${success} ${assessmentNameNode.innerHTML}`
         }
         return allAErrors.concat(errors)
       }, [])
