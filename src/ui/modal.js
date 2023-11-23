@@ -1,6 +1,6 @@
 export const MODAL_ID = 'codioGuidesLinterModal'
 
-export const createModal = () => {
+export const createModal = (onClick) => {
   let modal = document.getElementById(MODAL_ID)
   if (modal) {
     clearModal()
@@ -26,6 +26,7 @@ export const createModal = () => {
   modalBody.append(modalContent)
   modal.append(modalBody)
   document.body.append(modal)
+  modal.onclick = onClick
 }
 
 export const openModal = () => {
@@ -52,4 +53,9 @@ export const addModalContent = (textOrNode) => {
   } else {
     modalContent.append(textOrNode)
   }
+}
+
+export const closeModal = () => {
+  const modal = document.getElementById(MODAL_ID)
+  modal.style.display = 'none'
 }

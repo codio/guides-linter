@@ -46,3 +46,19 @@ export const promiseMapSeries = (arr, iterator, limit = 1) => {
   run(clonedArr)
   return d.promise
 }
+
+export const openEditor = async () => {
+  if (window.codioIDE.guides.isEditorOpen()) {
+    return
+  }
+  window.codioIDE.guides.openEditor()
+  return new Promise(resolve => {
+    const checkIsOpen = () => {
+      if (window.codioIDE.guides.isEditorOpen()) {
+        resolve()
+      }
+      setTimeout(checkIsOpen, 500)
+    }
+    checkIsOpen()
+  })
+}
