@@ -31,9 +31,9 @@ import {getAssessmentById, setAssessmentById} from './state'
       return
     }
     try {
-      // if (!window.codioIDE.isAuthorAssignment()) {
-      //   return
-      // }
+      if (!window.codioIDE.isAuthorAssignment()) {
+        return
+      }
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
 
