@@ -1,14 +1,27 @@
-name: upload to s3
+name: Build and upload
 on:
   release:
     types: [created]
 
 jobs:
-  build:
+  build-upload:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install packages
+        run: |
+          npm install
+
+      - name: Build
+        run: |
+          npm run build
 
       - name: Upload to s3
         run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{ github.event.release.tag_name }}"

@@ -7,7 +7,7 @@ tag=$3
 
 uploadFile () {
     fName=$1
-    file=./$fName
+    file=./dist/$fName
     bucket=codio-assets
     resource="/${bucket}/guides-linter/${tag}/${fName}"
     contentType="text/javascript"
