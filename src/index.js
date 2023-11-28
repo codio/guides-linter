@@ -1,21 +1,35 @@
 import rules, {checkRules} from './rules/index.js'
-import {ASSESSMENT, RULE_LEVELS} from './rules/const'
-import {addStyle, loadJS} from './helper'
-import * as modal from './ui/modal'
+import {RULE_LEVELS} from './rules/const'
+import {addStyle, loadJS, openEditor, promiseMapSeries} from './helpers'
+import * as Modal from './ui/modal'
+import * as uiHelpers from './ui/helpers'
 import {getStyles} from './ui/styles'
-import {getIconByLevel} from './ui/icons'
+import * as Button from './ui/button'
+import {getErrorsStatus} from './ui/helpers'
+import {getAssessmentById, setAssessmentById} from './state'
 
 (function () {
   const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const MARKDOWN_PARSER_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
   const LINTER_BUTTON_ID = 'codioGuidesLinterButton'
   const CHECK_GUIDES_TIMEOUT = 1000
+  const ACTIONS = {
+    GO_TO_SECTION: 'goToSection',
+    EDIT_ASSESSMENT: 'editAssessment'
+  }
+
+  const getExtOptions = () => {
+    let extOptions = {}
+    try {
+      extOptions = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
+    } catch {}
+    return extOptions
+  }
 
   const initializeGuidesLinter = async () => {
     if (!window.codioIDE || !window.codioIDE.guides) {
       return
     }
-
     try {
       if (!window.codioIDE.isAuthorAssignment()) {
         return
@@ -23,157 +37,143 @@ import {getIconByLevel} from './ui/icons'
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
 
-      addStyle(getStyles(LINTER_BUTTON_ID, modal.MODAL_ID))
-      // create button
-      const button = document.createElement('button')
-      button.id = LINTER_BUTTON_ID
-      button.innerHTML = 'Check guides'
-      button.type = 'button'
-      let data = null
-      try {
-        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
-      } catch {}
-      if (data && data.button) {
-        let {top, left} = data.button
-        top = Math.max(0, Math.min(top, window.innerHeight))
-        left = Math.max(0, Math.min(left, window.innerWidth - 90))
-        applyButtonPosition(button, top, left)
-      }
+      addStyle(getStyles(LINTER_BUTTON_ID, Modal.MODAL_ID))
       const onClick = async () => {
-        // const metadataP = window.codioIDE.guides.getMetadata()
-        // const bookStructureP = window.codioIDE.guides.getBookStructure()
         // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
-        const assessments = await window.codioIDE.guides.getAssessments()
-        console.log('assessments', assessments)
-        modal.createModal()
-        modal.openModal()
-        const errors = checkAssessments(assessments)
-        const status = getErrorsStatus(errors)
-        const resultContent = `<h4 style="color: ${status.color}">${status.message}</h4>`
-        modal.addModalContent(resultContent)
+        const [metadata, bookStructure, assessments] = await Promise.all([
+          window.codioIDE.guides.getMetadata(),
+          window.codioIDE.guides.getBookStructure(),
+          window.codioIDE.guides.getAssessments()
+        ])
+        console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
+        Modal.createModal(onModalClick)
+        Modal.openModal()
+        Modal.addModalContent('Loading pages info...')
+
+        const contentPaths = metadata.getSections().map(section => section.contentPath)
+        const allContent = await promiseMapSeries(
+          contentPaths, path => window.codioIDE.getFileContent(path), 10
+        )
+        Modal.clearModal()
+
+        const pagesInfoArr = metadata.getSections().map((section, index) => {
+          const content = allContent[index]
+          return {
+            section,
+            content,
+            assessmentIds: window.codioIDE.guides.findAssessmentsIds(content, section.contentType)
+          }
+        })
+
+        const assessmentById = assessments.reduce(
+          (obj, assessment) => Object.assign(obj, {[assessment.taskId]: assessment}), {}
+        )
+        setAssessmentById(assessmentById)
+
+        const assessmentErrors = checkAssessments(pagesInfoArr, assessmentById)
+        let status = getErrorsStatus(assessmentErrors)
+        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+        const pagesErrors = checkPages(pagesInfoArr, assessmentById)
+        status = getErrorsStatus(pagesErrors)
+        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
       }
-      bindButtonEvents(button, onClick)
-      document.body.append(button)
+      const onPositionUpdate = (button) => {
+        const extOptions = getExtOptions()
+        localStorage.setItem(CODIO_GUIDES_LINTER, JSON.stringify({...extOptions, button}))
+      }
+      const extOptions = getExtOptions()
+      Button.create(extOptions, onClick, onPositionUpdate)
     } catch (e) {
       console.log(e.message)
       setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
     }
   }
 
-  const getErrorsStatus = (errors) => {
-    if (!errors.length) {
-      return {color: 'green', message: 'Success'}
+  const onModalClick = (e) => {
+    if (!e.target.dataset.action) {
+      return
     }
-    const groupped = {errors: [], warnings: [], suggestions: []}
-    errors.forEach((item) => {
-      item.level === RULE_LEVELS.ISSUE ? groupped.errors.push(item) :
-        item.level === RULE_LEVELS.WARNING ? groupped.warnings.push(item) :
-          groupped.suggestions.push(item)
-    })
-    const prefix = groupped.errors.length ? 'Error' : 'Success'
-    const info = [
-      `errors: ${groupped.errors.length}`,
-      `warnings: ${groupped.warnings.length}`,
-      `suggestions: ${groupped.suggestions.length}`
-    ].join(', ')
-    const message = `${prefix}(${info})`
-    return {color: groupped.errors.length ? 'red' : 'green', message}
+    e.stopPropagation()
+    const {action, ...options} = e.target.dataset
+    onAction(action, options)
   }
 
-  const applyButtonPosition = (button, top, left, store) => {
-    button.style.top = `${top}px`
-    button.style.left = `${left}px`
-    button.style.right = 'auto'
-    if (store) {
-      let data = {}
-      try {
-        data = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
-      } catch {}
-      const button = {top, left}
-      localStorage.setItem(CODIO_GUIDES_LINTER, JSON.stringify({...data, button}))
+  const onAction = async (action, options) => {
+    await openEditor()
+
+    switch (action) {
+      case ACTIONS.GO_TO_SECTION:
+        window.codioIDE.guides.goToSection({sectionId: options.sectionId})
+        break
+      case ACTIONS.EDIT_ASSESSMENT:
+        window.codioIDE.guides.openAssessmentEditor({assessment: getAssessmentById()[options.taskId]})
+        break
     }
+    Modal.closeModal()
   }
 
-  const bindButtonEvents = (button, onClick) => {
-    let x = 0
-    let y = 0
-    let drag = false
-    const mouseDownHandler = function (e) {
-      // Get the current mouse position
-      x = e.clientX
-      y = e.clientY
-
-      // Attach the listeners to `document`
-      document.addEventListener('mousemove', mouseMoveHandler)
-      document.addEventListener('mouseup', mouseUpHandler)
-    }
-
-    const mouseMoveHandler = function (e) {
-      drag = true
-      // How far the mouse has been moved
-      const dx = e.clientX - x
-      const dy = e.clientY - y
-
-      // Set the position of element
-      applyButtonPosition(button, button.offsetTop + dy, button.offsetLeft + dx, true)
-
-      // Reassign the position of mouse
-      x = e.clientX
-      y = e.clientY
-    }
-
-    const mouseUpHandler = function () {
-      if (!drag) {
-        onClick()
-      }
-      drag = false
-      // Remove the handlers of `mousemove` and `mouseup`
-      document.removeEventListener('mousemove', mouseMoveHandler)
-      document.removeEventListener('mouseup', mouseUpHandler)
-    }
-    button.addEventListener('mousedown', mouseDownHandler)
-  }
-
-  const checkAssessmentType = (assessment) => {
-    return assessment.type === ASSESSMENT.TYPES.FREE_TEXT ?
-      'Free Text is used, use Free Text Autograde instead' : undefined
-  }
-
-  const checkAssessments = (assessments) => {
-    modal.addModalContent('<h3>Assessments</h3>')
+  const checkAssessments = (pagesInfo, assessmentsById) => {
+    Modal.addModalContent('<h3>Assessments</h3>')
     const list = document.createElement('ul')
-    modal.addModalContent(list)
-    return assessments.reduce((allErrors, assessment) => {
+    Modal.addModalContent(list)
+
+    return pagesInfo.reduce((allErrors, {section, assessmentIds}) => {
+      if (!assessmentIds.length) {
+        return allErrors
+      }
+      const pageLink =`<a href='javascript:void(0)' data-action="${ACTIONS.GO_TO_SECTION}" 
+data-section-id="${section.id}">${section.title}</a>`
+      const allAssessmentsErrors = assessmentIds.reduce((allAErrors, aId) => {
+        const listItem = document.createElement('li')
+        list.append(listItem)
+        const assessment = assessmentsById[aId]
+        const assessmentNameNode = document.createElement('h5')
+        const assessmentLink = `<a href='javascript:void(0)' data-action="${ACTIONS.EDIT_ASSESSMENT}" 
+data-section-id="${section.id}" data-task-id="${assessment.taskId}"
+>${assessment.source.name}(${assessment.taskId})</a>`
+        assessmentNameNode.innerHTML = `${pageLink} - ${assessmentLink}`
+        listItem.append(assessmentNameNode)
+        const errorsList = document.createElement('ul')
+        listItem.append(errorsList)
+
+        const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
+        uiHelpers.showAllErrors(errorsList, assessmentErrors)
+
+        if (!assessmentErrors.length) {
+          const success = '<span style="color: green">&#x2714;</span> '
+          assessmentNameNode.innerHTML = `${success} ${assessmentNameNode.innerHTML}`
+        }
+        return allAErrors.concat(assessmentErrors)
+      }, [])
+      return allErrors.concat(allAssessmentsErrors)
+    }, [])
+  }
+
+  const checkPages = (pagesInfo, assessmentsById) => {
+    Modal.addModalContent('<h3>Pages</h3>')
+    const list = document.createElement('ul')
+    Modal.addModalContent(list)
+
+    return pagesInfo.reduce((allErrors, {section, assessmentIds, content}) => {
       const listItem = document.createElement('li')
       list.append(listItem)
-      const assessmentNameNode = document.createElement('h5')
-      assessmentNameNode.innerHTML = `${assessment.source.name}(${assessment.taskId})`
-      listItem.append(assessmentNameNode)
-      const errors = []
+      const pageNameNode = document.createElement('h5')
+      pageNameNode.innerHTML = `<a href='javascript:void(0)' data-action="${ACTIONS.GO_TO_SECTION}" 
+data-section-id="${section.id}">${section.title}</a>`
+      listItem.append(pageNameNode)
       const errorsList = document.createElement('ul')
-      const showAllErrors = () => {
-        const renderedErrors = errors
-          .sort((a, b) => a.level > b.level ? -1 : a.level === b.level ? 0 : 1)
-          .map(({ruleName, message, level}) => `<li>${getIconByLevel(level)} ${ruleName}: ${message}</li>`)
-        errorsList.innerHTML += renderedErrors.join('')
-      }
       listItem.append(errorsList)
-      const assessmentTypeError = checkAssessmentType(assessment)
-      if (assessmentTypeError) {
-        errors.push({ruleName: 'assessmentType', message: assessmentTypeError, level: RULE_LEVELS.ISSUE})
-        showAllErrors()
-        return allErrors.concat(errors)
-      }
 
-      const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
-      errors.push(...assessmentErrors)
-      showAllErrors()
+      const data = {section, content, assessmentIds, assessmentsById}
+      const pageErrors = checkRules('pages', rules.page, null, data, RULE_LEVELS.SUGGESTION)
+      uiHelpers.showAllErrors(errorsList, pageErrors)
 
-      if (!errors.length) {
+      if (!pageErrors.length) {
         const success = '<span style="color: green">&#x2714;</span> '
-        assessmentNameNode.innerHTML = `${success}${assessment.source.name}`
+        pageNameNode.innerHTML = `${success} ${pageNameNode.innerHTML}`
       }
-      return allErrors.concat(errors)
+      return allErrors.concat(pageErrors)
     }, [])
   }
 
