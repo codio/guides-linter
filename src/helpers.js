@@ -62,3 +62,15 @@ export const openEditor = async () => {
     checkIsOpen()
   })
 }
+
+export const checkUrlExistsSync = (url) => {
+  console.log('checkUrlExistsSync', url)
+  try {
+    const http = new XMLHttpRequest()
+    http.open('HEAD', url, false)
+    http.send()
+    return http.status === 200
+  } catch {
+    return false
+  }
+}

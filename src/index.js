@@ -77,6 +77,10 @@ import {getAssessmentById, setAssessmentById} from './state'
         const pagesErrors = checkPages(pagesInfoArr, assessmentById)
         status = getErrorsStatus(pagesErrors)
         Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+        const assignmentErrors = checkAssignment(metadata, bookStructure)
+        status = getErrorsStatus(assignmentErrors)
+        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
       }
       const onPositionUpdate = (button) => {
         const extOptions = getExtOptions()
@@ -175,6 +179,24 @@ data-section-id="${section.id}">${section.title}</a>`
       }
       return allErrors.concat(pageErrors)
     }, [])
+  }
+
+  const checkAssignment = (metadata, bookStructure) => {
+    const titleEl = document.createElement('h3')
+    titleEl.innerHTML = 'Assignment'
+    Modal.addModalContent(titleEl)
+    const list = document.createElement('ul')
+    Modal.addModalContent(list)
+
+    const data = {metadata, bookStructure}
+    const assignmentErrors = checkRules('assignment', rules.assignment, null, data, RULE_LEVELS.SUGGESTION)
+    uiHelpers.showAllErrors(list, assignmentErrors)
+
+    if (!assignmentErrors.length) {
+      const success = '<span style="color: green">&#x2714;</span> '
+      titleEl.innerHTML = `${success} ${titleEl.innerHTML}`
+    }
+    return assignmentErrors
   }
 
   setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
