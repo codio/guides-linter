@@ -63,13 +63,28 @@ export const openEditor = async () => {
   })
 }
 
-export const checkUrlExistsSync = (url) => {
+export const checkResourceUrlExistsSync = (url) => {
   console.log('checkUrlExistsSync', url)
+  const command = 'wget -q --method=HEAD https://google.com'
+  window.codioIDE.remoteCommand.run(command).then(result => console.log('result1', result))
+  const command2 = 'wget -q --method=HEAD https://googqwele.com'
+  window.codioIDE.remoteCommand.run(command2).then(result => console.log('result2', result))
   try {
     const http = new XMLHttpRequest()
     http.open('HEAD', url, false)
     http.send()
     return http.status === 200
+  } catch {
+    return false
+  }
+}
+
+export const checkExternalUrlExists = async (url) => {
+  console.log('checkExternalUrlExists', url)
+  try {
+    const command = `wget -q --method=HEAD ${url}`
+    const res = await window.codioIDE.remoteCommand.run(command)
+    return res.code === 0
   } catch {
     return false
   }

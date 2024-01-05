@@ -1,5 +1,5 @@
 import {RULE_LEVELS} from '../../const'
-import {checkUrlExistsSync} from '../../../helpers'
+import {checkResourceUrlExistsSync} from '../../../helpers'
 
 // to get all resources links (audio, video, iframes, etc...)
 /*
@@ -35,7 +35,7 @@ export default {
     const markedInstance = new window.marked.Marked()
     markedInstance.use({ walkTokens })
     markedInstance.parse(content)
-    const ruleFailed = urls.some((url) => !checkUrlExistsSync(url))
+    const ruleFailed = urls.some((url) => !checkResourceUrlExistsSync(url))
     return ruleFailed  ? 'The link to some external resource results in 404 error' : undefined
   },
   level: RULE_LEVELS.ISSUE
