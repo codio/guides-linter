@@ -1,0 +1,9 @@
+{
+  "name": "Guides linter",
+  "type": "helper",
+  "properties": {
+    "user_type": "all",
+    "component": "assignment-author"
+  },
+  "file": "dist.tar.gz"
+}
