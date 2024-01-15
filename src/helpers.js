@@ -68,8 +68,12 @@ export const openEditor = async () => {
 export const checkResourceUrlExists = async (url) => {
   try {
     const result = await fetch(url, {method: 'HEAD'})
+    if (result.status !== 200) {
+      console.log(`fetch status ${result.status} returned for ${url}`)
+    }
     return result.status === 200
-  } catch {
+  } catch (e) {
+    console.log(e.message)
     return false
   }
 }
@@ -78,8 +82,12 @@ export const checkExternalUrlExists = async (url) => {
   try {
     const command = `wget -q --method=HEAD ${url}`
     const res = await window.codioIDE.remoteCommand.run(command)
+    if (res.status !== 200) {
+      console.log(`remoteCommand.run status ${res.status} returned for ${url}`)
+    }
     return res.code === 0
-  } catch {
+  } catch (e) {
+    console.log(e.message)
     return false
   }
 }
