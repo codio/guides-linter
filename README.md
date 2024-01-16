@@ -60,3 +60,4 @@ loadJS('https://static-assets.codio.com/guides-linter/${tag}/index.js');
 ## Assignment
   * Pages - The assignment should contain more than 2 student pages
 
+> "Learning Objective" page - page that contains "Learning Objective" in the title 
