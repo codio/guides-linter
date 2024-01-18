@@ -82,8 +82,8 @@ export const checkExternalUrlExists = async (url) => {
   try {
     const command = `wget -q --method=HEAD ${url}`
     const res = await window.codioIDE.remoteCommand.run(command)
-    if (res.status !== 200) {
-      console.log(`remoteCommand.run status ${res.status} returned for ${url}`)
+    if (res.code !== 0) {
+      console.log(`remoteCommand.run code ${res.code} returned for ${url}`)
     }
     return res.code === 0
   } catch (e) {
