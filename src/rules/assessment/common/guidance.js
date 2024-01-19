@@ -1,7 +1,10 @@
-import {RULE_LEVELS} from '../../const'
+import {ASSESSMENT, RULE_LEVELS} from '../../const'
 
 export default {
   action: (assessment) => {
+    if (assessment.type === ASSESSMENT.TYPES.GRADE_BOOK) {
+      return undefined
+    }
     const {guidance} = assessment.source
     const lexerData = window.marked.lexer(guidance || '')
     const allCodeBlocksHideClipboard = lexerData

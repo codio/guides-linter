@@ -1,3 +1,5 @@
+const absoluteUrlRe = new RegExp('^(?:[a-z+]+:)?//', 'i')
+
 export const loadJS = (FILE_URL) => {
   let scriptEle = document.createElement('script')
   scriptEle.setAttribute('src', FILE_URL)
@@ -61,4 +63,69 @@ export const openEditor = async () => {
     }
     checkIsOpen()
   })
+}
+
+export const checkResourceUrlExists = async (url) => {
+  try {
+    const result = await fetch(url, {method: 'HEAD'})
+    if (result.status !== 200) {
+      console.log(`fetch status ${result.status} returned for ${url}`)
+    }
+    return result.status === 200
+  } catch (e) {
+    console.log(e.message)
+    return false
+  }
+}
+
+export const checkExternalUrlExists = async (url) => {
+  try {
+    const command = `wget -q --method=HEAD ${url}`
+    const res = await window.codioIDE.remoteCommand.run(command)
+    if (res.code !== 0) {
+      console.log(`remoteCommand.run code ${res.code} returned for ${url}`)
+    }
+    return res.code === 0
+  } catch (e) {
+    console.log(e.message)
+    return false
+  }
+}
+
+export const promiseAllSeries = (arr) => {
+  if (!arr.length) {
+    return Promise.resolve()
+  }
+  const results = []
+  let completed = 0
+  const iterate = async () => {
+    const res = await arr[completed]
+    results.push(res)
+    completed += 1
+    if (completed >= arr.length) {
+      return results
+    }
+    return iterate()
+  }
+  return iterate()
+}
+
+export const collectAllLinks = (content) => {
+  const getAbsoluteUrl = (node, attr) => {
+    const url = node.attributes.getNamedItem(attr)?.value
+    if (!url) {
+      return null
+    }
+    return absoluteUrlRe.test(url) ? url : `${window.codioIDE.getBoxUrl()}/${url}`
+  }
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<body>${window.marked.parse(content)}</body>`, 'text/html')
+  return [
+    ...[...doc.querySelectorAll('a')].map(node => ({url: getAbsoluteUrl(node, 'href'), external: true})),
+    ...[...doc.querySelectorAll('audio')].map(node => ({url: getAbsoluteUrl(node, 'src')})),
+    ...[...doc.querySelectorAll('iframe')].map(node => ({url: getAbsoluteUrl(node, 'src')})),
+    ...[...doc.querySelectorAll('img')].map(node => ({url: getAbsoluteUrl(node, 'src')})),
+    ...[...doc.querySelectorAll('source')].map(node => ({url: getAbsoluteUrl(node, 'src')})),
+    ...[...doc.querySelectorAll('video')].map(node => ({url: getAbsoluteUrl(node, 'src')}))
+  ]
 }
