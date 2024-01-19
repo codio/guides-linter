@@ -1,6 +1,6 @@
 import rules, {checkRules} from './rules/index.js'
 import {RULE_LEVELS} from './rules/const'
-import {addStyle, loadJS, openEditor, promiseMapSeries} from './helpers'
+import {addStyle, loadJS, openEditor, promiseAllSeries, promiseMapSeries} from './helpers'
 import * as Modal from './ui/modal'
 import * as uiHelpers from './ui/helpers'
 import {getStyles} from './ui/styles'
@@ -67,12 +67,16 @@ import {getAssessmentById, setAssessmentById} from './state'
         )
         setAssessmentById(assessmentById)
 
-        const assessmentErrors = checkAssessments(pagesInfoArr, assessmentById)
+        const assessmentErrors = await checkAssessments(pagesInfoArr, assessmentById)
         let status = getErrorsStatus(assessmentErrors)
         Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
 
-        const pagesErrors = checkPages(pagesInfoArr, assessmentById)
+        const pagesErrors = await checkPages(pagesInfoArr, assessmentById)
         status = getErrorsStatus(pagesErrors)
+        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+        const assignmentErrors = await checkAssignment(metadata, bookStructure)
+        status = getErrorsStatus(assignmentErrors)
         Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
       }
       const onPositionUpdate = (button) => {
@@ -110,49 +114,54 @@ import {getAssessmentById, setAssessmentById} from './state'
     Modal.closeModal()
   }
 
-  const checkAssessments = (pagesInfo, assessmentsById) => {
+  const checkPageAssessment = async (section, assessment, list, pageLink) => {
+    const assessmentErrors = await checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
+    const listItem = document.createElement('li')
+    list.append(listItem)
+    const assessmentNameNode = document.createElement('h5')
+    const assessmentLink = `<a href='javascript:void(0)' data-action="${ACTIONS.EDIT_ASSESSMENT}" 
+data-section-id="${section.id}" data-task-id="${assessment.taskId}"
+>${assessment.source.name}(${assessment.taskId})</a>`
+    assessmentNameNode.innerHTML = `${pageLink} - ${assessmentLink}`
+    listItem.append(assessmentNameNode)
+    const errorsList = document.createElement('ul')
+    listItem.append(errorsList)
+    uiHelpers.showAllErrors(errorsList, assessmentErrors)
+
+    if (!assessmentErrors.length) {
+      const success = '<span style="color: green">&#x2714;</span> '
+      assessmentNameNode.innerHTML = `${success} ${assessmentNameNode.innerHTML}`
+    }
+    return assessmentErrors
+  }
+
+  const checkAssessments = async (pagesInfo, assessmentsById) => {
     Modal.addModalContent('<h3>Assessments</h3>')
     const list = document.createElement('ul')
     Modal.addModalContent(list)
 
-    return pagesInfo.reduce((allErrors, {section, assessmentIds}) => {
+    const promises = pagesInfo.map(({section, assessmentIds}) => {
       if (!assessmentIds.length) {
-        return allErrors
+        return Promise.resolve([])
       }
-      const pageLink =`<a href='javascript:void(0)' data-action="${ACTIONS.GO_TO_SECTION}" 
+      const pageLink =`<a href='javascript:void(0)' data-action="${ACTIONS.GO_TO_SECTION}"
 data-section-id="${section.id}">${section.title}</a>`
-      const allAssessmentsErrors = assessmentIds.reduce((allAErrors, aId) => {
-        const listItem = document.createElement('li')
-        list.append(listItem)
-        const assessment = assessmentsById[aId]
-        const assessmentNameNode = document.createElement('h5')
-        const assessmentLink = `<a href='javascript:void(0)' data-action="${ACTIONS.EDIT_ASSESSMENT}" 
-data-section-id="${section.id}" data-task-id="${assessment.taskId}"
->${assessment.source.name}(${assessment.taskId})</a>`
-        assessmentNameNode.innerHTML = `${pageLink} - ${assessmentLink}`
-        listItem.append(assessmentNameNode)
-        const errorsList = document.createElement('ul')
-        listItem.append(errorsList)
 
-        const assessmentErrors = checkRules('assessments', rules.assessment, null, assessment, RULE_LEVELS.SUGGESTION)
-        uiHelpers.showAllErrors(errorsList, assessmentErrors)
-
-        if (!assessmentErrors.length) {
-          const success = '<span style="color: green">&#x2714;</span> '
-          assessmentNameNode.innerHTML = `${success} ${assessmentNameNode.innerHTML}`
-        }
-        return allAErrors.concat(assessmentErrors)
-      }, [])
-      return allErrors.concat(allAssessmentsErrors)
-    }, [])
+      const promises = assessmentIds.map(aId => checkPageAssessment(section, assessmentsById[aId], list, pageLink))
+      return promiseAllSeries(promises)
+    })
+    const allErrors = await promiseAllSeries(promises)
+    return allErrors.flat(Infinity)
   }
 
-  const checkPages = (pagesInfo, assessmentsById) => {
+  const checkPages = async (pagesInfo, assessmentsById) => {
     Modal.addModalContent('<h3>Pages</h3>')
     const list = document.createElement('ul')
     Modal.addModalContent(list)
 
-    return pagesInfo.reduce((allErrors, {section, assessmentIds, content}) => {
+    const promises = pagesInfo.map(async ({section, assessmentIds, content}) => {
+      const data = {section, content, assessmentIds, assessmentsById}
+      const pageErrors = await checkRules('pages', rules.page, null, data, RULE_LEVELS.SUGGESTION)
       const listItem = document.createElement('li')
       list.append(listItem)
       const pageNameNode = document.createElement('h5')
@@ -162,16 +171,34 @@ data-section-id="${section.id}">${section.title}</a>`
       const errorsList = document.createElement('ul')
       listItem.append(errorsList)
 
-      const data = {section, content, assessmentIds, assessmentsById}
-      const pageErrors = checkRules('pages', rules.page, null, data, RULE_LEVELS.SUGGESTION)
       uiHelpers.showAllErrors(errorsList, pageErrors)
 
       if (!pageErrors.length) {
         const success = '<span style="color: green">&#x2714;</span> '
         pageNameNode.innerHTML = `${success} ${pageNameNode.innerHTML}`
       }
-      return allErrors.concat(pageErrors)
-    }, [])
+      return pageErrors
+    })
+    const allErrors = await promiseAllSeries(promises)
+    return allErrors.flat(Infinity)
+  }
+
+  const checkAssignment = async (metadata, bookStructure) => {
+    const titleEl = document.createElement('h3')
+    titleEl.innerHTML = 'Assignment'
+    Modal.addModalContent(titleEl)
+    const list = document.createElement('ul')
+    Modal.addModalContent(list)
+
+    const data = {metadata, bookStructure}
+    const assignmentErrors = await checkRules('assignment', rules.assignment, null, data, RULE_LEVELS.SUGGESTION)
+    uiHelpers.showAllErrors(list, assignmentErrors)
+
+    if (!assignmentErrors.length) {
+      const success = '<span style="color: green">&#x2714;</span> '
+      titleEl.innerHTML = `${success} ${titleEl.innerHTML}`
+    }
+    return assignmentErrors
   }
 
   setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
