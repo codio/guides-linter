@@ -2,7 +2,7 @@
   "name": "Guides linter",
   "type": "helper",
   "properties": {
-    "user_type": "all",
+    "user_type": "instructor",
     "component": "assignment-author"
   },
   "file": "dist.tar.gz"
