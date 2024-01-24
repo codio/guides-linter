@@ -1,4 +1,4 @@
-name: Build and upload
+name: Build and upload artifact
 on:
   release:
     types: [created]
@@ -23,8 +23,16 @@ jobs:
         run: |
           npm run build
 
-      - name: Upload to s3
-        run: ./uploadToS3.sh "${{ secrets.ASSETS_UPLOADER_KEY }}" "${{ secrets.ASSETS_UPLOADER_SECRET }}" "${{ github.event.release.tag_name }}"
+      - name: build artifact
+        working-directory: ./dist
+        run: tar -czvf dist.tar.gz index.js
+
+      - name: upload artifact
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: "dist/dist.tar.gz"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: ${{ github.event.release.tag_name }}
 
       - name: Slack
         uses: codio/codio-slack-action@master
