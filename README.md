@@ -2,22 +2,11 @@
 
 ### Usage:
 
-Add following custom script to the organization
+Add as extension to organization or user level
 
-see [Custom scripts](https://docs.codio.com/instructors/admin/organization/enable-custom-script.html)
+### QA
 
-
-```javascript
-function loadJS(FILE_URL) {
-  let scriptEle = document.createElement("script");
-  scriptEle.setAttribute("src", FILE_URL);
-  scriptEle.setAttribute("type", "text/javascript");
-  scriptEle.setAttribute("async", true);
-  document.body.appendChild(scriptEle);
-}
-loadJS('https://static-assets.codio.com/guides-linter/${tag}/index.js');
-```
-
+Extract release attached asset `dist.tar.gz` and use content of `index.js` extracted in custom script in the organization
 
 # Rules
 
