@@ -1,14 +1,5 @@
-export const getStyles = (buttonId, modalId) => {
+export const getStyles = (modalId) => {
   return `
-#${buttonId} {
-  position: absolute;
-  right: 5px;
-  top: 200px;
-  z-index: 1000;
-  cursor: pointer;
-  width: 90px;
-}
-  
 #${modalId} {
   display: none;
   position: fixed;

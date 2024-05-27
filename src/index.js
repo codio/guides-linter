@@ -4,43 +4,32 @@ import {addStyle, loadJS, openEditor, promiseAllSeries, promiseMapSeries} from '
 import * as Modal from './ui/modal'
 import * as uiHelpers from './ui/helpers'
 import {getStyles} from './ui/styles'
-import * as Button from './ui/button'
 import {getErrorsStatus} from './ui/helpers'
 import {getAssessmentById, setAssessmentById} from './state'
 
 (function () {
-  const CODIO_GUIDES_LINTER = 'codioGuidesLinter'
   const MARKDOWN_PARSER_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
-  const LINTER_BUTTON_ID = 'codioGuidesLinterButton'
   const CHECK_GUIDES_TIMEOUT = 1000
   const ACTIONS = {
     GO_TO_SECTION: 'goToSection',
     EDIT_ASSESSMENT: 'editAssessment'
   }
 
-  const getExtOptions = () => {
-    let extOptions = {}
-    try {
-      extOptions = JSON.parse(localStorage.getItem(CODIO_GUIDES_LINTER))
-    } catch {}
-    return extOptions
-  }
-
   const initializeGuidesLinter = async () => {
-    if (!window.codioIDE || !window.codioIDE.guides) {
+    if (!window.codioIDE || !window.codioIDE.guides || !window.codioIDE.menu) {
       return
     }
     try {
       // check metadata, if no errors - create button
       await window.codioIDE.guides.getMetadata()
 
-      addStyle(getStyles(LINTER_BUTTON_ID, Modal.MODAL_ID))
+      addStyle(getStyles(Modal.MODAL_ID))
       const onClick = async () => {
         // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
         const [metadata, bookStructure, assessments] = await Promise.all([
           window.codioIDE.guides.getMetadata(),
           window.codioIDE.guides.getBookStructure(),
-          window.codioIDE.guides.getAssessments()
+          window.codioIDE.guides.assessments.list()
         ])
         console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
         Modal.createModal(onModalClick)
@@ -49,7 +38,7 @@ import {getAssessmentById, setAssessmentById} from './state'
 
         const contentPaths = metadata.getSections().map(section => section.contentPath)
         const allContent = await promiseMapSeries(
-          contentPaths, path => window.codioIDE.getFileContent(path), 10
+          contentPaths, path => window.codioIDE.files.getContent(path), 10
         )
         Modal.clearModal()
 
@@ -58,7 +47,7 @@ import {getAssessmentById, setAssessmentById} from './state'
           return {
             section,
             content,
-            assessmentIds: window.codioIDE.guides.findAssessmentsIds(content, section.contentType)
+            assessmentIds: window.codioIDE.guides.assessments.findIds(content, section.contentType)
           }
         })
 
@@ -79,12 +68,10 @@ import {getAssessmentById, setAssessmentById} from './state'
         status = getErrorsStatus(assignmentErrors)
         Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
       }
-      const onPositionUpdate = (button) => {
-        const extOptions = getExtOptions()
-        localStorage.setItem(CODIO_GUIDES_LINTER, JSON.stringify({...extOptions, button}))
-      }
-      const extOptions = getExtOptions()
-      Button.create(extOptions, onClick, onPositionUpdate)
+      window.codioIDE.menu.addItem(
+        {id: 'education'},
+        {id: 'codioGuidesLinter', title: 'Check Guides', callback: onClick}
+      )
     } catch (e) {
       console.log(e.message)
       setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
@@ -108,7 +95,7 @@ import {getAssessmentById, setAssessmentById} from './state'
         window.codioIDE.guides.goToSection({sectionId: options.sectionId})
         break
       case ACTIONS.EDIT_ASSESSMENT:
-        window.codioIDE.guides.openAssessmentEditor({assessment: getAssessmentById()[options.taskId]})
+        window.codioIDE.guides.assessments.openEditor({assessment: getAssessmentById()[options.taskId]})
         break
     }
     Modal.closeModal()
