@@ -9,73 +9,71 @@ import {getAssessmentById, setAssessmentById} from './state'
 
 (function () {
   const MARKDOWN_PARSER_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
-  const CHECK_GUIDES_TIMEOUT = 1000
+  const CHECK_CODIO_API_TIMEOUT = 1000
   const ACTIONS = {
     GO_TO_SECTION: 'goToSection',
     EDIT_ASSESSMENT: 'editAssessment'
   }
 
+  const onCheckGuides = async () => {
+    try {
+      // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
+      const [metadata, bookStructure, assessments] = await Promise.all([
+        window.codioIDE.guides.getMetadata(),
+        window.codioIDE.guides.getBookStructure(),
+        window.codioIDE.guides.assessments.list()
+      ])
+      console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
+      Modal.createModal(onModalClick)
+      Modal.openModal()
+      Modal.addModalContent('Loading pages info...')
+
+      const contentPaths = metadata.getSections().map(section => section.contentPath)
+      const allContent = await promiseMapSeries(
+        contentPaths, path => window.codioIDE.files.getContent(path), 10
+      )
+      Modal.clearModal()
+
+      const pagesInfoArr = metadata.getSections().map((section, index) => {
+        const content = allContent[index]
+        return {
+          section,
+          content,
+          assessmentIds: window.codioIDE.guides.assessments.findIds(content, section.contentType)
+        }
+      })
+
+      const assessmentById = assessments.reduce(
+        (obj, assessment) => Object.assign(obj, {[assessment.taskId]: assessment}), {}
+      )
+      setAssessmentById(assessmentById)
+
+      const assessmentErrors = await checkAssessments(pagesInfoArr, assessmentById)
+      let status = getErrorsStatus(assessmentErrors)
+      Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+      const pagesErrors = await checkPages(pagesInfoArr, assessmentById)
+      status = getErrorsStatus(pagesErrors)
+      Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+
+      const assignmentErrors = await checkAssignment(metadata, bookStructure)
+      status = getErrorsStatus(assignmentErrors)
+      Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
+    } catch (e) {
+      console.error('Error start guides linter', e.message)
+    }
+  }
+
   const initializeGuidesLinter = async () => {
     if (!window.codioIDE || !window.codioIDE.guides || !window.codioIDE.menu) {
+      setTimeout(initializeGuidesLinter, CHECK_CODIO_API_TIMEOUT)
       return
     }
-    try {
-      // check metadata, if no errors - create button
-      await window.codioIDE.guides.getMetadata()
-
-      addStyle(getStyles(Modal.MODAL_ID))
-      const onClick = async () => {
-        // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
-        const [metadata, bookStructure, assessments] = await Promise.all([
-          window.codioIDE.guides.getMetadata(),
-          window.codioIDE.guides.getBookStructure(),
-          window.codioIDE.guides.assessments.list()
-        ])
-        console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
-        Modal.createModal(onModalClick)
-        Modal.openModal()
-        Modal.addModalContent('Loading pages info...')
-
-        const contentPaths = metadata.getSections().map(section => section.contentPath)
-        const allContent = await promiseMapSeries(
-          contentPaths, path => window.codioIDE.files.getContent(path), 10
-        )
-        Modal.clearModal()
-
-        const pagesInfoArr = metadata.getSections().map((section, index) => {
-          const content = allContent[index]
-          return {
-            section,
-            content,
-            assessmentIds: window.codioIDE.guides.assessments.findIds(content, section.contentType)
-          }
-        })
-
-        const assessmentById = assessments.reduce(
-          (obj, assessment) => Object.assign(obj, {[assessment.taskId]: assessment}), {}
-        )
-        setAssessmentById(assessmentById)
-
-        const assessmentErrors = await checkAssessments(pagesInfoArr, assessmentById)
-        let status = getErrorsStatus(assessmentErrors)
-        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
-
-        const pagesErrors = await checkPages(pagesInfoArr, assessmentById)
-        status = getErrorsStatus(pagesErrors)
-        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
-
-        const assignmentErrors = await checkAssignment(metadata, bookStructure)
-        status = getErrorsStatus(assignmentErrors)
-        Modal.addModalContent(`<h4 style="color: ${status.color}">${status.message}</h4>`)
-      }
-      window.codioIDE.menu.addItem(
-        {id: 'education'},
-        {id: 'codioGuidesLinter', title: 'Check Guides', callback: onClick}
-      )
-    } catch (e) {
-      console.log(e.message)
-      setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
-    }
+    addStyle(getStyles(Modal.MODAL_ID))
+    window.codioIDE.menu.addItem(
+      {id: 'education'},
+      {id: 'codioGuidesLinter', title: 'Check Guides', callback: onCheckGuides}
+    )
   }
 
   const onModalClick = (e) => {
@@ -188,6 +186,6 @@ data-section-id="${section.id}">${section.title}</a>`
     return assignmentErrors
   }
 
-  setTimeout(initializeGuidesLinter, CHECK_GUIDES_TIMEOUT)
+  setTimeout(initializeGuidesLinter, CHECK_CODIO_API_TIMEOUT)
   loadJS(MARKDOWN_PARSER_URL)
 })()
