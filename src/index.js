@@ -20,7 +20,7 @@ import {getAssessmentById, setAssessmentById} from './state'
       // const fileTreeStructureP = window.codioIDE.getFileTreeStructure()
       const [metadata, bookStructure, assessments] = await Promise.all([
         window.codioIDE.guides.getMetadata(),
-        window.codioIDE.guides.getBookStructure(),
+        window.codioIDE.guides.structure.getStructure(),
         window.codioIDE.guides.assessments.list()
       ])
       console.log('metadata, bookStructure, assessments', metadata, bookStructure, assessments)
